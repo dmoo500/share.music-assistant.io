@@ -1,30 +1,23 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
 import type { SharePayload } from "@/types";
 import { MEDIA_TYPE_EMOJI } from "@/constants";
-import { expandArtworkRef } from "@/helpers/share";
 
-const props = defineProps<{
+defineProps<{
   payload: SharePayload | null;
 }>();
-
-const artworkUrl = computed(() =>
-  props.payload?.art_ref ? expandArtworkRef(props.payload.art_ref) : undefined
-);
 </script>
 
 <template>
   <section v-if="payload" class="preview">
     <img
-      v-if="artworkUrl"
-      :src="artworkUrl"
+      v-if="payload.art_url"
+      :src="payload.art_url"
       :alt="payload.title || ''"
       class="art"
       @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
     />
     <div v-else class="art-placeholder">
-      {{ MEDIA_TYPE_EMOJI[payload.type] || "🎵" }}
+      {{ MEDIA_TYPE_EMOJI[payload.type] }}
     </div>
     <div class="art-shade" />
     <div class="brand">

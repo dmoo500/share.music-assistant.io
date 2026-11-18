@@ -1,21 +1,15 @@
 <script setup lang="ts">
-import type { ProviderDomain } from "@/types";
+import type { ProviderDomain, ProviderUrls } from "@/types";
 import { PROVIDER_LABELS } from "@/constants";
-import { safeProviderUrl } from "@/helpers/share";
 import { computed, ref } from "vue";
 import { Copy } from "@lucide/vue";
 
 const props = defineProps<{
-  links: Partial<Record<ProviderDomain, string>>;
+  links: ProviderUrls;
 }>();
 const copiedDomain = ref<ProviderDomain>();
 
-const safeLinks = computed(() =>
-  Object.entries(props.links).flatMap(([domain, value]) => {
-    const url = safeProviderUrl(domain, value);
-    return url && domain in PROVIDER_LABELS ? [[domain as ProviderDomain, url] as const] : [];
-  })
-);
+const entries = computed(() => Object.entries(props.links) as [ProviderDomain, string][]);
 
 function getProviderIconUrl(domain: ProviderDomain): string {
   return `/provider-icons/${domain}.svg`;
@@ -32,8 +26,8 @@ async function copyLink(domain: ProviderDomain, url: string): Promise<void> {
 </script>
 
 <template>
-  <div v-if="safeLinks.length" class="provider-list">
-    <div v-for="[domain, url] in safeLinks" :key="domain" class="provider-row">
+  <div v-if="entries.length" class="provider-list">
+    <div v-for="[domain, url] in entries" :key="domain" class="provider-row">
       <img :src="getProviderIconUrl(domain)" :alt="PROVIDER_LABELS[domain]" class="provider-icon" />
       <div class="provider-info">
         <span class="provider-name">{{ PROVIDER_LABELS[domain] }}</span>

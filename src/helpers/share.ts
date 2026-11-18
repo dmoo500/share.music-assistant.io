@@ -1,149 +1,70 @@
-import type { ProviderDomain, SharePayload } from "@/types";
+import type { MediaType, ProviderDomain, ProviderUrls, SharePayload } from "@/types";
 
-export type ProviderLinks = Partial<Record<ProviderDomain, string>> | undefined;
+export const SHARE_FORMAT_VERSION = "1";
+export const MAX_ENCODED_PAYLOAD_SIZE = 65536;
+export const MAX_DECODED_PAYLOAD_SIZE = 65536;
 
+/** Artwork hosts a share link may point at, matched exactly or as a subdomain. */
+export const ARTWORK_HOST_SUFFIXES = [
+  "mzstatic.com",
+  "scdn.co",
+  "tidal.com",
+  "qobuz.com",
+  "dzcdn.net",
+  "bcbits.com",
+  "googleusercontent.com",
+  "ytimg.com",
+  "coverartarchive.org",
+  "archive.org",
+  "theaudiodb.com",
+  "fanart.tv",
+  "last.fm",
+  "lastfm.freetls.fastly.net",
+  "ssl-images-amazon.com",
+] as const;
+
+// Share URL hosts the server attributes to each provider (music_assistant/helpers/uri.py)
 const PROVIDER_HOSTS: Record<ProviderDomain, readonly string[]> = {
   spotify: ["open.spotify.com"],
-  tidal: ["tidal.com", "www.tidal.com"],
-  qobuz: ["open.qobuz.com"],
+  tidal: ["tidal.com", "listen.tidal.com"],
+  qobuz: ["open.qobuz.com", "play.qobuz.com", "qobuz.com", "www.qobuz.com"],
   ytmusic: ["music.youtube.com"],
   deezer: ["deezer.com", "www.deezer.com"],
-  apple_music: ["music.apple.com"],
-};
-const PROVIDER_BASE_URLS: Record<ProviderDomain, string> = {
-  spotify: "https://open.spotify.com",
-  tidal: "https://tidal.com",
-  qobuz: "https://open.qobuz.com",
-  ytmusic: "https://music.youtube.com",
-  deezer: "https://www.deezer.com",
-  apple_music: "https://music.apple.com",
-};
-const ARTWORK_SUFFIXES: Record<string, string> = {
-  m: "mzstatic.com",
-  s: "scdn.co",
-  t: "tidal.com",
-  q: "qobuz.com",
-  d: "dzcdn.net",
-  b: "bcbits.com",
-  g: "googleusercontent.com",
-  y: "ytimg.com",
-  c: "coverartarchive.org",
-  a: "archive.org",
-  u: "theaudiodb.com",
-  f: "fanart.tv",
-  l: "last.fm",
-  L: "lastfm.freetls.fastly.net",
-  z: "ssl-images-amazon.com",
+  apple_music: ["music.apple.com", "itunes.apple.com", "geo.itunes.apple.com"],
 };
 
-export function safeProviderUrl(domain: string, value: string): string | undefined {
-  if (!Object.prototype.hasOwnProperty.call(PROVIDER_HOSTS, domain)) {
-    return undefined;
+const MEDIA_TYPES: readonly MediaType[] = ["track", "album", "artist"];
+const STRING_FIELDS = [
+  "artist",
+  "version",
+  "album",
+  "isrc",
+  "mbid",
+  "mb_track",
+  "barcode",
+] as const;
+
+/**
+ * Decode the fragment of a share link (without the leading "#").
+ *
+ * Throws when the link is malformed, oversized or of an unsupported version or media type.
+ * Artwork and provider URLs that fail validation are dropped instead.
+ */
+export async function decodeSharePayload(encoded: string): Promise<SharePayload> {
+  if (!encoded.startsWith(SHARE_FORMAT_VERSION)) {
+    throw new Error("Unsupported share format version");
   }
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" &&
-      !url.username &&
-      !url.password &&
-      PROVIDER_HOSTS[domain as ProviderDomain].includes(url.hostname.toLowerCase())
-      ? url.href
-      : undefined;
-  } catch {
-    return undefined;
+  if (encoded.length > MAX_ENCODED_PAYLOAD_SIZE) {
+    throw new Error("Share payload is too large");
   }
+  const body = encoded.slice(SHARE_FORMAT_VERSION.length);
+  if (!/^[A-Za-z0-9_-]+$/.test(body)) {
+    throw new Error("Invalid share payload");
+  }
+  return parsePayload(JSON.parse(await inflate(base64UrlToBytes(body))));
 }
 
-export function safeArtworkUrl(value: string): string | undefined {
-  try {
-    const url = new URL(value);
-    const hostname = url.hostname.toLowerCase();
-    if (
-      url.protocol !== "https:" ||
-      url.username ||
-      url.password ||
-      !Object.values(ARTWORK_SUFFIXES).some(
-        (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`)
-      )
-    ) {
-      return undefined;
-    }
-    return url.href;
-  } catch {
-    return undefined;
-  }
-}
-
-export function expandArtworkRef(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const separator = value.indexOf(":");
-  if (separator <= 0) return undefined;
-  const code = value.slice(0, separator);
-  const hostAndPath = value.slice(separator + 1);
-  const suffix = ARTWORK_SUFFIXES[code];
-  if (!suffix || !hostAndPath) return undefined;
-  let subdomain = "";
-  let path = hostAndPath;
-  if (!hostAndPath.startsWith("/")) {
-    const subdomainEnd = hostAndPath.indexOf(":/");
-    if (subdomainEnd <= 0) return undefined;
-    subdomain = hostAndPath.slice(0, subdomainEnd);
-    path = hostAndPath.slice(subdomainEnd + 1);
-  }
-  if (!path.startsWith("/")) return undefined;
-  if (subdomain && !subdomain.split(".").every((part) => /^[a-z0-9-]+$/i.test(part))) {
-    return undefined;
-  }
-  return safeArtworkUrl(`https://${subdomain ? `${subdomain}.` : ""}${suffix}${path}`);
-}
-
-export function expandProviderRefs(value: unknown): ProviderLinks {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  const links = Object.fromEntries(
-    Object.entries(value).flatMap(([domain, ref]) => {
-      if (
-        typeof ref !== "string" ||
-        !Object.prototype.hasOwnProperty.call(PROVIDER_BASE_URLS, domain) ||
-        !ref.startsWith("/") ||
-        ref.startsWith("//") ||
-        ref.includes("\\")
-      ) {
-        return [];
-      }
-      try {
-        const url = new URL(ref, PROVIDER_BASE_URLS[domain as ProviderDomain]);
-        const safeUrl = safeProviderUrl(domain, url.href);
-        return safeUrl ? [[domain, safeUrl]] : [];
-      } catch {
-        return [];
-      }
-    })
-  );
-  return Object.keys(links).length ? (links as ProviderLinks) : undefined;
-}
-
-export function sanitizeProviderRefs(value: unknown): ProviderLinks {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  const refs = Object.fromEntries(
-    Object.entries(value).flatMap(([domain, ref]) => {
-      if (
-        typeof ref !== "string" ||
-        !Object.prototype.hasOwnProperty.call(PROVIDER_BASE_URLS, domain) ||
-        !ref.startsWith("/") ||
-        ref.startsWith("//") ||
-        ref.includes("\\")
-      ) {
-        return [];
-      }
-      return expandProviderRefs({ [domain]: ref }) ? [[domain, ref]] : [];
-    })
-  );
-  return Object.keys(refs).length ? (refs as Exclude<ProviderLinks, undefined>) : undefined;
-}
-
+/** Parse the recipient's Music Assistant URL, allowing only plain http(s) URLs. */
 export function parseInstanceUrl(value: string): URL {
   const url = new URL(value.trim());
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
@@ -152,15 +73,120 @@ export function parseInstanceUrl(value: string): URL {
   return url;
 }
 
-export function encodeSharePayload(payload: SharePayload): string {
-  const bytes = new TextEncoder().encode(JSON.stringify(payload));
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
+/** Build the URL that opens the share in the recipient's Music Assistant frontend. */
 export function createMusicAssistantUrl(instanceUrl: string, encodedPayload: string): string {
   const url = parseInstanceUrl(instanceUrl);
   url.hash = `/share?payload=${encodeURIComponent(encodedPayload)}`;
   return url.toString();
+}
+
+function parsePayload(data: unknown): SharePayload {
+  if (!isRecord(data) || !MEDIA_TYPES.includes(data.type as MediaType)) {
+    throw new Error("Unsupported share payload");
+  }
+  if (typeof data.title !== "string" || !data.title.trim()) {
+    throw new Error("Share payload title is missing");
+  }
+  const strings: Partial<Record<(typeof STRING_FIELDS)[number], string>> = {};
+  for (const field of STRING_FIELDS) {
+    const value = data[field];
+    if (value == null) continue;
+    if (typeof value !== "string") throw new Error(`Invalid share payload field: ${field}`);
+    strings[field] = value;
+  }
+  const artists = data.artists ?? undefined;
+  if (
+    artists !== undefined &&
+    (!Array.isArray(artists) || artists.some((a) => typeof a !== "string" || !a.trim()))
+  ) {
+    throw new Error("Invalid share artist credits");
+  }
+  const duration = data.duration ?? undefined;
+  if (duration !== undefined && (!Number.isInteger(duration) || (duration as number) < 0)) {
+    throw new Error("Invalid share track duration");
+  }
+  const artUrl = data.art_url;
+  return {
+    type: data.type as MediaType,
+    title: data.title,
+    ...strings,
+    artists: (artists as string[] | undefined)?.map((a) => a.trim()),
+    art_url: typeof artUrl === "string" && isValidArtworkUrl(artUrl) ? artUrl : undefined,
+    provider_urls: validatedProviderUrls(data.provider_urls),
+    duration: duration as number | undefined,
+  };
+}
+
+/** Keep the provider URLs that pass validation; reject a map of the wrong shape. */
+function validatedProviderUrls(value: unknown): ProviderUrls | undefined {
+  if (value == null) return undefined;
+  if (!isRecord(value)) throw new Error("Invalid share provider URLs");
+  const urls: ProviderUrls = {};
+  for (const [domain, url] of Object.entries(value)) {
+    if (typeof url !== "string") throw new Error("Invalid share provider URLs");
+    if (isValidProviderUrl(domain, url)) urls[domain as ProviderDomain] = url;
+  }
+  return Object.keys(urls).length ? urls : undefined;
+}
+
+function isValidProviderUrl(domain: string, value: string): boolean {
+  const url = parseUrl(value);
+  return (
+    !!url &&
+    Object.hasOwn(PROVIDER_HOSTS, domain) &&
+    url.protocol === "https:" &&
+    !url.username &&
+    !url.password &&
+    // host, not hostname: the server rejects a URL with an explicit port
+    PROVIDER_HOSTS[domain as ProviderDomain].includes(url.host)
+  );
+}
+
+function isValidArtworkUrl(value: string): boolean {
+  const url = parseUrl(value);
+  if (!url || url.protocol !== "https:" || !url.hostname || url.username || url.password) {
+    return false;
+  }
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+  return ARTWORK_HOST_SUFFIXES.some(
+    (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`)
+  );
+}
+
+/** Raw-inflate the bytes as UTF-8 text, aborting once the output exceeds the size cap. */
+async function inflate(compressed: Uint8Array<ArrayBuffer>): Promise<string> {
+  const reader = new Blob([compressed])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"))
+    .getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let size = 0;
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return text + decoder.decode();
+    size += value.byteLength;
+    if (size > MAX_DECODED_PAYLOAD_SIZE) {
+      await reader.cancel();
+      throw new Error("Share payload is too large");
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
+
+function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(value.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function parseUrl(value: string): URL | undefined {
+  try {
+    return new URL(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

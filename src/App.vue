@@ -6,14 +6,7 @@ import type { SharePayload } from "@/types";
 import { DEFAULT_INSTANCE_URL, LEGACY_DEFAULT_INSTANCE_URL, STORAGE_KEY } from "@/constants";
 import MediaPreview from "@/components/MediaPreview.vue";
 import ProviderLinks from "@/components/ProviderLinks.vue";
-import TrackList from "@/components/TrackList.vue";
-import {
-  createMusicAssistantUrl,
-  expandArtworkRef,
-  expandProviderRefs,
-  parseInstanceUrl,
-  sanitizeProviderRefs,
-} from "@/helpers/share";
+import { createMusicAssistantUrl, decodeSharePayload, parseInstanceUrl } from "@/helpers/share";
 
 const payload = ref<SharePayload | null>(null);
 const maUrl = useStorage(STORAGE_KEY, "");
@@ -32,63 +25,16 @@ watch(
   { immediate: true }
 );
 
-function decodePayload(): void {
+async function decodePayload(): Promise<void> {
   payload.value = null;
   error.value = "";
+  const raw = location.hash.slice(1);
+  if (!raw) {
+    error.value = "No share data found in URL.";
+    return;
+  }
   try {
-    const raw = location.hash.slice(1);
-    if (!raw) {
-      error.value = "No share data found in URL.";
-      return;
-    }
-
-    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const decoded = new TextDecoder().decode(bytes);
-    const value: unknown = JSON.parse(decoded);
-    if (!value || typeof value !== "object") throw new Error("Invalid payload");
-    const candidate = value as Record<string, unknown>;
-    if (
-      !["track", "album", "artist", "playlist"].includes(String(candidate.type)) ||
-      typeof candidate.title !== "string" ||
-      !candidate.title.trim() ||
-      (candidate.version !== undefined && typeof candidate.version !== "string") ||
-      (candidate.artists !== undefined &&
-        (!Array.isArray(candidate.artists) ||
-          candidate.artists.some((artist) => typeof artist !== "string" || !artist.trim())))
-    ) {
-      throw new Error("Invalid payload");
-    }
-    if (
-      candidate.type === "playlist" &&
-      (!Array.isArray(candidate.tracks) ||
-        candidate.tracks.some(
-          (track) =>
-            !track ||
-            typeof track.title !== "string" ||
-            (track.version !== undefined && typeof track.version !== "string") ||
-            (track.artists !== undefined &&
-              (!Array.isArray(track.artists) ||
-                track.artists.some(
-                  (artist: unknown) => typeof artist !== "string" || !artist.trim()
-                )))
-        ))
-    ) {
-      throw new Error("Invalid playlist payload");
-    }
-    const decodedPayload = candidate as unknown as SharePayload;
-    payload.value = {
-      ...decodedPayload,
-      art_ref:
-        typeof candidate.art_ref === "string" && expandArtworkRef(candidate.art_ref)
-          ? candidate.art_ref
-          : undefined,
-      provider_refs: sanitizeProviderRefs(candidate.provider_refs),
-      tracks: decodedPayload.tracks?.map((track) => ({
-        ...track,
-        provider_refs: sanitizeProviderRefs(track.provider_refs),
-      })),
-    };
+    payload.value = await decodeSharePayload(raw);
   } catch {
     error.value = "Could not decode share link. It may be corrupted.";
   }
@@ -141,16 +87,7 @@ onBeforeUnmount(() => {
   <div class="card">
     <MediaPreview :payload="payload" />
 
-    <ProviderLinks
-      v-if="payload?.provider_refs"
-      :links="expandProviderRefs(payload.provider_refs) ?? {}"
-    />
-
-    <TrackList
-      v-if="payload?.type === 'playlist' && payload.tracks"
-      :tracks="payload.tracks"
-      :ma-url="maUrl"
-    />
+    <ProviderLinks v-if="payload?.provider_urls" :links="payload.provider_urls" />
 
     <!-- MA Instance URL Input -->
     <div class="url-row">
