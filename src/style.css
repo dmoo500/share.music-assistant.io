@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-/* CSS Variables für Hell/Dunkel-Modus */
+/* Theme colors */
 :root {
   color-scheme: light dark;
 }
 
-/* Light Theme (Standard) */
+/* Light theme (default) */
 :root {
   --color-bg-primary: #f5f5f5;
   --color-bg-secondary: #ffffff;
@@ -18,7 +18,7 @@
   --color-error: #cf6679;
 }
 
-/* Dark Theme (automatisch via prefers-color-scheme) */
+/* Dark theme, follows prefers-color-scheme */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-bg-primary: #0f0f0f;
