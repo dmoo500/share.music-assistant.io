@@ -3,13 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useStorage } from "@vueuse/core";
 import { Save } from "@lucide/vue";
 import type { SharePayload } from "@/types";
-import { DEFAULT_INSTANCE_URL, LEGACY_DEFAULT_INSTANCE_URL, STORAGE_KEY } from "@/constants";
+import { DEFAULT_INSTANCE_URL, STORAGE_KEY } from "@/constants";
 import MediaPreview from "@/components/MediaPreview.vue";
 import ProviderLinks from "@/components/ProviderLinks.vue";
 import { createMusicAssistantUrl, decodeSharePayload, parseInstanceUrl } from "@/helpers/share";
 
 const payload = ref<SharePayload | null>(null);
 const maUrl = useStorage(STORAGE_KEY, "");
+const decodeError = ref("");
 const error = ref("");
 
 const pageTitle = computed(() => {
@@ -27,30 +28,26 @@ watch(
 
 async function decodePayload(): Promise<void> {
   payload.value = null;
-  error.value = "";
+  decodeError.value = "";
   const raw = location.hash.slice(1);
   if (!raw) {
-    error.value = "No share data found in URL.";
+    decodeError.value = "No share data found in URL.";
     return;
   }
   try {
     payload.value = await decodeSharePayload(raw);
   } catch {
-    error.value = "Could not decode share link. It may be corrupted.";
+    decodeError.value = "Could not decode share link. It may be corrupted.";
   }
 }
 
 function saveUrl(): void {
   try {
-    validateInstanceUrl(maUrl.value);
+    parseInstanceUrl(maUrl.value);
     error.value = "";
   } catch {
     error.value = "Please enter a valid HTTP or HTTPS URL.";
   }
-}
-
-function validateInstanceUrl(value: string): URL {
-  return parseInstanceUrl(value);
 }
 
 function openInMusicAssistant(): void {
@@ -72,8 +69,7 @@ onMounted(() => {
   decodePayload();
   window.addEventListener("hashchange", decodePayload);
 
-  // Auto-fill URL if empty
-  if (!maUrl.value || maUrl.value === LEGACY_DEFAULT_INSTANCE_URL) {
+  if (!maUrl.value) {
     maUrl.value = DEFAULT_INSTANCE_URL;
   }
 });
@@ -85,7 +81,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="card">
-    <MediaPreview :payload="payload" />
+    <MediaPreview :payload="payload" :failed="!!decodeError" />
 
     <ProviderLinks v-if="payload?.provider_urls" :links="payload.provider_urls" />
 
@@ -117,7 +113,9 @@ onBeforeUnmount(() => {
       It is saved in your browser for next time.
     </p>
 
-    <!-- Error Message -->
+    <div v-if="decodeError" class="error">
+      {{ decodeError }}
+    </div>
     <div v-if="error" class="error">
       {{ error }}
     </div>

@@ -1,20 +1,28 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
 import type { SharePayload } from "@/types";
 import { MEDIA_TYPE_EMOJI } from "@/constants";
 
-defineProps<{
+const props = defineProps<{
   payload: SharePayload | null;
+  failed: boolean;
 }>();
+
+const artFailed = ref(false);
+watch(
+  () => props.payload,
+  () => (artFailed.value = false)
+);
 </script>
 
 <template>
   <section v-if="payload" class="preview">
     <img
-      v-if="payload.art_url"
+      v-if="payload.art_url && !artFailed"
       :src="payload.art_url"
       :alt="payload.title || ''"
       class="art"
-      @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
+      @error="artFailed = true"
     />
     <div v-else class="art-placeholder">
       {{ MEDIA_TYPE_EMOJI[payload.type] }}
@@ -34,7 +42,7 @@ defineProps<{
   <section v-else class="preview preview-loading" aria-label="Loading preview">
     <div class="art-placeholder">🎵</div>
     <div class="meta">
-      <h1 class="title">Loading…</h1>
+      <h1 class="title">{{ failed ? "Share link unavailable" : "Loading…" }}</h1>
     </div>
   </section>
 </template>
