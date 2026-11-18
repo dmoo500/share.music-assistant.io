@@ -1,0 +1,80 @@
+{
+  "valid": {
+    "track": {
+      "link": "https://share.music-assistant.io/#1TVFtS8MwEP4rks-2SfqyzYKIYwPFF0R8QUVGkp42mjYlSYvb2H_3WsfwQ0juubvneS63JWHdAilIcEJ9k2MSdDBDfH40hxDA4WU09OAwJ1zQPmDyyRoJIhwgT4q3A_iOqJFdjXVzWNumPLoAY-i5tD3gU_TQYKP2TmHF4up2yTljjLMZorVc_RkpyOyDq1TlPMpKJqNM5El0oriMJiJRuWKQl1PxZ2DVOYMNVQitLyjVnkfem7je-CCCVrGyNdW1-AQaqq6W9KbzWnGe0z6jQlApqVLU284poBPGfvBIGX-1n0jfOtvrEtyggVNuiW9t0B_rf3q2hSbew6PWOAFNN7OKPTxO72Fxd30pl81L9fwqB8dta2BVDyb-sYxxPOZGkhLo-IuUZxmbprM0zc_06T7IMk52xwS34rVtkOUeauFxW1CiQNk5nHvAk2S6-wU",
+      "expected": {
+        "type": "track",
+        "title": "A Better Believer",
+        "artist": "Volbeat",
+        "artists": [
+          "Volbeat"
+        ],
+        "album": "Beyond Hell/Above Heaven",
+        "isrc": "DKNE11000108",
+        "mb_track": "8f1c3c51-4d0b-4a52-9c1b-6a2c5c0e5d7a",
+        "art_url": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/aa/bb/cc/source/600x600bb.jpg",
+        "provider_urls": {
+          "spotify": "https://open.spotify.com/track/3z8h0TU7ReDPLIbEnYhWZb",
+          "apple_music": "https://music.apple.com/de/album/1440738335?i=1440738441"
+        },
+        "version": "Remastered",
+        "duration": 227
+      }
+    },
+    "album": {
+      "link": "https://share.music-assistant.io/#1XZBNboMwFISvEnld8B8lhWO0B4hssFxHEJNnOzSJsuhleoEegYv1AZWKuvDizXwzkudO4nUwpCaq06knTyS62M339Gmnr-jCTl_hmE7oKMAzovXmbILd6_QdUNUKGt_OiWcmJa_2nDEu5MofEnTovMc4hJpSMMEnaEzIo2tVlze-p65X1gSqFNWaNg0tC_aBLz8OFjsG8BfXGpiLAqnvZAluKv-Klg9QUfIXWQmMtsbcDGzQcRzzVdzwkgku9oifvU63f_SiLXAKmTn9RpRVBpfI1mGyMK-RgQ-UlbKoWMGkKKQgj8cP",
+      "expected": {
+        "type": "album",
+        "title": "Ágætis byrjun",
+        "artist": "Sigur Rós",
+        "barcode": "5033197100123",
+        "art_url": "https://resources.tidal.com/images/aa/bb/cc/640x640.jpg",
+        "provider_urls": {
+          "tidal": "https://tidal.com/album/2618392",
+          "deezer": "https://www.deezer.com/album/302127",
+          "qobuz": "https://www.qobuz.com/us-en/album/agaetis-byrjun-sigur-ros/0634904032432"
+        }
+      }
+    },
+    "artist": {
+      "link": "https://share.music-assistant.io/#1TY7NbsIwEIRfpfK59gYaoyrXcuulonDghPxLXJzEstdIEeLdWUBIve3O7HyzF4ZzcqxjKmMoyN4ZBox3Ya08vv3U8UTaoIMlqZEr1_oPx61sJG-tsvzTmQW3TevlcmG0liu6JtSh5kiBHjGVDkCV4rAIr0byBJ7hOcFQSzDwwsLzB-zroMFSPU9UL_7SkaApT-dgXb6TC-subMZH-l_LYxfzVLFqJ8w0gOnVOLoIu6_DabP-3uddzBrzb5ir3Pp4ZNfrDQ",
+      "expected": {
+        "type": "artist",
+        "title": "Daft Punk",
+        "mbid": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+        "art_url": "https://assets.fanart.tv/fanart/music/056e4f3e/artistthumb/daft-punk.jpg",
+        "provider_urls": {
+          "ytmusic": "https://music.youtube.com/channel/UC_kRDKYrUlrbtrSiyu5Tflg"
+        }
+      }
+    },
+    "invalid_urls": {
+      "link": "https://share.music-assistant.io/#1pY7LTsMwEEV_BXmN7JCEAll1AYtKXaCKCsGmcpyhMfULP2Kaqv-OE4oUEKxY3rlzZs4B-b0BVCFvKduhc-S5F0NeqI4K3pytV0uXxtT6TbAiFa33xlWEyN556jnDTEsMHRcY3qk0AgjTHVj8araJM1Z3vAE7wA5VB-SM9vxlPzn0jR01SNFft9nD-moFt_fLRX2nntrH53q0a-iXRELHOAicuIu8KC9naa8B6MFOngQHtjJxHmPEn-VvGDXJYSOD42zCagMKn7wn1J-SQe2UjuofF950Hfqf_DgcaSrqIEk2K8qbrMyKvCxydDx-AA",
+      "expected": {
+        "type": "track",
+        "title": "Invalid URLs",
+        "provider_urls": {
+          "qobuz": "https://open.qobuz.com/album/0634904032432"
+        }
+      }
+    }
+  },
+  "rejected": {
+    "wrong_version": {
+      "link": "https://share.music-assistant.io/#2TVFtS8MwEP4rks-2SfqyzYKIYwPFF0R8QUVGkp42mjYlSYvb2H_3WsfwQ0juubvneS63JWHdAilIcEJ9k2MSdDBDfH40hxDA4WU09OAwJ1zQPmDyyRoJIhwgT4q3A_iOqJFdjXVzWNumPLoAY-i5tD3gU_TQYKP2TmHF4up2yTljjLMZorVc_RkpyOyDq1TlPMpKJqNM5El0oriMJiJRuWKQl1PxZ2DVOYMNVQitLyjVnkfem7je-CCCVrGyNdW1-AQaqq6W9KbzWnGe0z6jQlApqVLU284poBPGfvBIGX-1n0jfOtvrEtyggVNuiW9t0B_rf3q2hSbew6PWOAFNN7OKPTxO72Fxd30pl81L9fwqB8dta2BVDyb-sYxxPOZGkhLo-IuUZxmbprM0zc_06T7IMk52xwS34rVtkOUeauFxW1CiQNk5nHvAk2S6-wU",
+      "error": "Unsupported share format version"
+    },
+    "playlist": {
+      "link": "https://share.music-assistant.io/#1q1YqqSxIVbJSKshJrMzJLC5R0lEqySzJAQn5VirARWsB",
+      "error": "Unsupported share payload"
+    },
+    "wrong_duration_type": {
+      "link": "https://share.music-assistant.io/#1q1YqqSxIVbJSKilKTM5W0lEqySzJAfErgOyU0qLEksz8PCDXyMhcqRYA",
+      "error": "Invalid share track duration"
+    },
+    "decompressed_too_large": {
+      "link": "https://share.music-assistant.io/#17cexCYAwFAXAXV7tBG4TxEJiEcJvRNxd3MHyrrs7dY09a2q2rWdJHXV-bwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADA7_K8",
+      "error": "Share payload is too large"
+    }
+  }
+}
